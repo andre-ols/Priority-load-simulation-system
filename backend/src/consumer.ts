@@ -1,60 +1,48 @@
-import amqp from "amqplib";
+import { Message } from "./domain/models/Message";
+import { MessageProcessor } from "./domain/services/MessageProcessor";
 import { logger } from "./infra/logger";
+import { RabbitMQConnection } from "./infra/RabbitMQConnection";
 
-async function connectToRabbitMQ() {
-  try {
-    // Conectar ao RabbitMQ
-    const conn = await amqp.connect("amqp://user:password@localhost");
+export class MessageConsumer {
+  private messageProcessor: MessageProcessor;
+  private channel: any;
 
-    logger.info("Conectado ao RabbitMQ com sucesso!");
-    logger.info("Iniciando o consumidor de mensagens...");
-    const ch = await conn.createChannel();
+  constructor() {
+    this.messageProcessor = new MessageProcessor();
+    this.channel = null;
+  }
 
-    const queue = "priority_queue";
+  public async initialize(): Promise<void> {
+    try {
+      this.channel = await RabbitMQConnection.getInstance().connect();
 
-    // Declara a fila com prioridade
-    await ch.assertQueue(queue, {
-      durable: true,
-      arguments: {
-        "x-max-priority": 10, // Define a prioridade máxima como 10
-      },
-    });
+      const queue = "priority_queue";
+      await this.channel.assertQueue(queue, {
+        durable: true,
+        arguments: {
+          "x-max-priority": 10,
+        },
+      });
 
-    logger.info("Fila de prioridade configurada com sucesso!");
+      logger.info("Fila de prioridade configurada com sucesso!");
 
-    // Definir o prefetchCount para limitar a quantidade de mensagens que o consumidor pode pegar ao mesmo tempo
-    const prefetchCount = 10;
-    await ch.prefetch(prefetchCount); // Limita a 10 mensagens não confirmadas
-    logger.info(`Prefetch count definido para ${prefetchCount}`);
+      const prefetchCount = 10;
+      await this.channel.prefetch(prefetchCount);
+      logger.info(`Prefetch count definido para ${prefetchCount}`);
 
-    // Consumir mensagens da fila
-    await ch.consume(
-      queue,
-      async (msg) => {
-        if (msg !== null) {
-          await processMessage(msg, ch);
-        }
-      },
-      { noAck: false }
-    );
-  } catch (err) {
-    console.error("Erro ao conectar ou consumir do RabbitMQ:", err);
+      await this.channel.consume(
+        queue,
+        async (msg: any) => {
+          if (msg !== null) {
+            const parsedMsg: Message = JSON.parse(msg.content.toString());
+            await this.messageProcessor.processMessage(parsedMsg);
+            this.channel.ack(msg); // Confirma a mensagem
+          }
+        },
+        { noAck: false }
+      );
+    } catch (err) {
+      logger.error("Erro ao conectar ou consumir do RabbitMQ:", err);
+    }
   }
 }
-
-// Função para processar as mensagens
-async function processMessage(msg: amqp.ConsumeMessage, ch: amqp.Channel) {
-  const parsedMsg = JSON.parse(msg.content.toString());
-  logger.debug(
-    `Recebido pedido com prioridade [${parsedMsg.priority}]: ${parsedMsg.content}`
-  );
-
-  // Simula o processamento do pedido com um setTimeout
-  await new Promise((resolve) => setTimeout(resolve, 500 * 5)); // Simula o tempo de processamento
-
-  logger.info(`Pedido processado com sucesso: ${parsedMsg.content}`);
-  ch.ack(msg); // Confirma que a mensagem foi processada com sucesso
-}
-
-// Iniciar a conexão com o RabbitMQ e consumir mensagens
-connectToRabbitMQ();
