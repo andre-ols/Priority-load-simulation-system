@@ -1,0 +1,19 @@
+{
+	"compilerOptions": {
+    "module": "CommonJS",
+		"sourceMap": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "baseUrl": "src",
+    "paths": {
+      "@/*": ["*"]
+    },
+    "skipLibCheck": true,
+    "types": [
+      "node",
+    ],
+  },
+  "exclude": ["node_modules"],
+}
