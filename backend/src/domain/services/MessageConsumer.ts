@@ -1,7 +1,7 @@
-import { Message } from "../domain/models/Message";
-import { MessageProcessor } from "../domain/services/MessageProcessor";
-import { logger } from "../infrastructure/logger";
-import { RabbitMQConnection } from "../infrastructure/RabbitMQConnection";
+import { logger } from "../../infra/logger";
+import { RabbitMQConnection } from "../../infra/RabbitMQConnection";
+import { Message } from "../models/Message";
+import { MessageProcessor } from "./MessageProcessor";
 
 export class MessageConsumer {
   private messageProcessor: MessageProcessor;
