@@ -1,6 +1,6 @@
 import { faker } from "@faker-js/faker";
 import * as amqp from "amqplib";
-import { logger } from "./logger";
+import { logger } from "./infra/logger";
 
 // Função para gerar uma prioridade aleatória (Alta, Média, Baixa)
 function getRandomPriority() {

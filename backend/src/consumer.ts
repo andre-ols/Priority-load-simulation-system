@@ -1,5 +1,5 @@
 import amqp from "amqplib";
-import { logger } from "./logger";
+import { logger } from "./infra/logger";
 
 async function connectToRabbitMQ() {
   try {
